@@ -222,9 +222,22 @@ function pinta(cod){
   </div>`;
 
   let h = '';
+  const LADOT = {constructora:'Responde la constructora', mandante:'Responde el mandante o la ITO',
+                 instalador:'Responde el instalador'};
+  const CATT = {'DEFINICION DE PROYECTO':'definición de proyecto','INFORMACION':'información',
+                'DECISION ADMINISTRATIVA':'decisión administrativa','CAPACIDAD':'capacidad · HH',
+                'REVISAR':'sin clasificar'};
   if (r.obs.length) h += `<div class="card rojo"><h2>Restricción declarada</h2>` +
-    r.obs.map(o => `<div class="it"><div class="cab"><span class="id">${esc(META[o.e].i)} · ${esc(META[o.e].l)}</span></div>
-      ${esc(o.t)}</div>`).join('') + `</div>`;
+    r.obs.map(o => {
+      const pie = o.c ? `<div class="pie">${esc(CATT[o.c]||o.c.toLowerCase())}`
+        + (o.l ? ` · ${esc(LADOT[o.l]||o.l)}` : '')
+        + (o.resp ? ` · ${esc(o.resp)}` : '')
+        + (o.d ? ` · hace ${o.d} ${o.d===1?'día':'días'}` : '')
+        + (o.fc ? ` · se libera el ${esc(fecha(o.fc))}` : ' · sin fecha de liberación')
+        + `</div>` : '';
+      return `<div class="it"><div class="cab"><span class="id">${esc(META[o.e].i)} · ${esc(META[o.e].l)}</span></div>
+      ${esc(o.t)}${pie}</div>`;
+    }).join('') + `</div>`;
 
   if (r.cmp.length) h += `<div class="card"><h2>Compromisos de la RCE en este recinto</h2>` +
     r.cmp.map(tema).join('') + `</div>`;
