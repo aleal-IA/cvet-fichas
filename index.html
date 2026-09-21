@@ -210,15 +210,20 @@ function pinta(cod){
   const r = idx[cod];
   sello();
   if (!r){ document.getElementById('cuerpo').innerHTML =
-    `<div class="card"><p class="vacio">No encuentro el recinto <b>${esc(cod)}</b>. Búscalo abajo.</p></div>`;
+    `<div class="card"><p class="vacio">No encuentro <b>${esc(cod)}</b>. Búscalo abajo.</p></div>`;
     document.getElementById('hero').innerHTML = ''; return }
 
+  // Un equipo no tiene piso, ni sector, ni cielo: tiene ubicación, familia y quien lo instala.
+  const meta = r.eq
+    ? `<span>${esc(r.p)}</span><span>${esc(r.s)}</span><span>${esc(r.t||'—')}</span>` +
+      Object.keys(r.esp).map(e=>`<span>${esc(r.esp[e].i)}</span>`).join('')
+    : `<span>${esc(r.p)}</span><span>Sector ${esc(r.s)}</span>
+       <span>${esc(r.t||'—')}</span><span>Cielo ${esc(r.ci)}${r.cc&&r.cc!=='N/A'?' · '+esc(r.cc):''}</span>`;
   document.getElementById('hero').innerHTML = `<div class="hero">
     <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
     <div class="cod">${esc(r.r)}</div>
     <h1>${esc(r.rn)}</h1>
-    <div class="meta"><span>${esc(r.p)}</span><span>Sector ${esc(r.s)}</span>
-      <span>${esc(r.t||'—')}</span><span>Cielo ${esc(r.ci)}${r.cc&&r.cc!=='N/A'?' · '+esc(r.cc):''}</span></div>
+    <div class="meta">${meta}</div>
   </div>`;
 
   let h = '';
@@ -305,10 +310,12 @@ function ruta(){
   sello();
   document.getElementById('hero').innerHTML = `<div class="hero">
     <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
-    <div class="cod">FICHA DE RECINTO</div><h1>Clínica Veterinaria PUC</h1>
-    <div class="meta"><span>${D ? D.rec.length : 0} recintos</span><span>Rombo y compromisos</span></div></div>`;
+    <div class="cod">FICHA DE RECINTO Y EQUIPO</div><h1>Clínica Veterinaria PUC</h1>
+    <div class="meta"><span>${D ? D.rec.filter(x=>!x.eq).length : 0} recintos</span>
+      <span>${D ? D.rec.filter(x=>x.eq).length : 0} equipos</span>
+      <span>Rombo y compromisos</span></div></div>`;
   document.getElementById('cuerpo').innerHTML =
-    `<div class="card"><p class="vacio">Escanea el código pegado en la puerta del recinto,<br>o búscalo abajo por nombre.</p></div>`;
+    `<div class="card"><p class="vacio">Escanea el código pegado en la puerta del recinto o en el equipo,<br>o búscalo abajo por nombre.</p></div>`;
   document.title = 'Ficha de Recinto CVET';
   setTimeout(() => { try { q.focus({preventScroll:true}) } catch(e){} }, 120);
 }
