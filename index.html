@@ -273,9 +273,7 @@ function pinta(cod){
     r.obs.map(o => {
       const pie = o.c ? `<div class="pie">${esc(CATT[o.c]||o.c.toLowerCase())}`
         + (o.l ? ` · ${esc(LADOT[o.l]||o.l)}` : '')
-        + (o.resp ? ` · ${esc(o.resp)}` : '')
         + (o.d ? ` · hace ${o.d} ${o.d===1?'día':'días'}` : '')
-        + (o.fc ? ` · se libera el ${esc(fecha(o.fc))}` : ' · sin fecha de liberación')
         + `</div>` : '';
       return `<div class="it"><div class="cab"><span class="id">${esc(META[o.e].i)} · ${esc(META[o.e].l)}</span></div>
       ${esc(o.t)}${pie}</div>`;
