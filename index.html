@@ -380,7 +380,7 @@ function pintaTodo(clave, P){
   const cuenta = (...s) => todas.filter(x => s.includes(x.sit)).length;
   document.getElementById('hero').innerHTML = `<div class="hero">
     <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
-    <div class="cod">TODAS LAS RESTRICCIONES</div><h1>${esc(P ? P.n : clave)}</h1>
+    <div class="cod">TODAS LAS RESTRICCIONES</div><h1>${esc(P ? nombre(clave) : clave)}</h1>
     <div class="meta"><span>${esc(P ? P.c : '')}</span><span>${todas.length} abiertas en la obra</span></div></div>`;
   const chip = (f, t) => `<a href="${href(f, fr)}" class="${fs===f?'on':''}">${t}</a>`;
   const resp = [...new Set(todas.map(x => x.resp).filter(Boolean))]
@@ -416,7 +416,7 @@ function pintaPersona(sig){
   const ord = l => l.slice().sort((a,b) => b.d - a.d);
   document.getElementById('hero').innerHTML = `<div class="hero">
     <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
-    <div class="cod">MIS RESTRICCIONES</div><h1>${esc(P ? P.n : etq)}</h1>
+    <div class="cod">MIS RESTRICCIONES</div><h1>${esc(P ? nombre(clave) : etq)}</h1>
     <div class="meta"><span>${esc(P ? P.c : '')}</span><span>${mias.length} propias</span>${sup.length?`<span>${sup.length} que supervisa</span>`:''}</div></div>`;
   const chip = (f, t) => `<a href="#MIS/${esc(clave)}${f?'?f='+encodeURIComponent(f):''}" class="${filtro===f?'on':''}">${t}</a>`;
   let h = `<div class="card"><div class="cifras">
