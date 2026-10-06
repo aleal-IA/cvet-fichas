@@ -91,6 +91,25 @@ ul.items li.pend .d{color:var(--muted)}
 .tag.venc{background:var(--crit);border-color:var(--crit);color:#fff}
 .tag.perm{border-color:var(--steel);color:var(--steel)}
 .it .pie{margin-top:5px;font-size:12px;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+a.btn{font:inherit;font-size:13.5px;font-weight:600;min-height:44px;padding:0 14px;display:inline-flex;align-items:center;
+  border:1px solid var(--ink);border-radius:8px;background:var(--surface);color:var(--ink);text-decoration:none}
+a.btn.pri{background:var(--ink);color:#fff}
+a.btn:focus-visible{outline:2px solid var(--s2);outline-offset:2px}
+.tag.sf{border-color:var(--crit);color:var(--crit)}
+.tag.ok{border-color:var(--ink);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.chips a{font-size:12.5px;font-weight:600;padding:6px 11px;border:1px solid var(--line);border-radius:99px;color:var(--ink);text-decoration:none}
+.chips a.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.cifras div{background:var(--surface);padding:10px 8px;text-align:center}
+.cifras b{display:block;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.cifras span{font-size:11px;color:var(--muted)}
+.cifras .r b{color:var(--crit)}
+.pers a{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;border-top:1px solid var(--line);color:var(--ink2);text-decoration:none;font-size:14px}
+.pers a:first-of-type{border-top:0}
+.pers a b{color:var(--ink)}
+.pers a span{color:var(--muted);font-size:12.5px}
 .nota{font-size:12px;color:var(--muted);padding:10px 14px;background:var(--surface2);border-top:1px solid var(--line)}
 
 /* reseña técnica del equipo · comprobación de recepción */
@@ -280,6 +299,9 @@ function pinta(cod){
       ${esc(o.t)}${pie}</div>`;
     }).join('') + `</div>`;
 
+  const rr = (D.rst||[]).filter(x => x.r === r.r);
+  if (rr.length) h += `<div class="card"><h2>Cadena de restricciones</h2>` + rr.map(x => rstTarjeta(x, false)).join('') + `</div>`;
+
   if (r.cmp.length) h += `<div class="card"><h2>Compromisos de la RCE en este recinto</h2>` +
     r.cmp.map(tema).join('') + `</div>`;
 
@@ -307,6 +329,87 @@ function pinta(cod){
   document.getElementById('pie').textContent =
     'Registro de la Reunión de Coordinación de Especialidades · Clínica Veterinaria PUC · rombo y compromisos leídos del mismo instrumento.';
   document.title = r.r + ' · ' + r.rn;
+}
+
+/* ---------- cadena de restricciones: tarjetas, botones y vista por persona ---------- */
+const SIT = {'sin fecha':['Sin fecha',''], 'sin fecha vencida':['Sin fecha · plazo vencido','sf'],
+  'comprometida':['Comprometida',''], 'vencida':['Vencida','venc'], 'liberada por confirmar':['Liberada · por confirmar','ok'],
+  'reabierta':['Reabierta','venc'], 'por asignar':['Por asignar','']};
+const nombre = s => (D.pers && D.pers[s] && D.pers[s].n) || s || '—';
+// Enlace al formulario ya prellenado: el responsable sólo completa lo que falte.
+function enlace(x, accion){
+  const F = D.form; if (!F) return null;
+  const e = F.entradas, q = [['usp','pp_url'], ['entry.'+e.id, x.i], ['entry.'+e.accion, accion]];
+  if (accion === 'Cambiar fecha' && x.fc) q.push(['entry.'+e.fecha, x.fc]);
+  return F.url + '?' + q.map(p => p[0] + '=' + encodeURIComponent(p[1])).join('&');
+}
+function botones(x){
+  const sit = x.sit, mk = (a, pri) => { const u = enlace(x, a);
+    return u ? `<a class="btn${pri?' pri':''}" href="${esc(u)}" target="_blank" rel="noopener">${a}</a>` : '' };
+  if (!D.form || sit === 'liberada por confirmar' || sit === 'por asignar') return '';
+  const b = (sit === 'comprometida' || sit === 'vencida')
+    ? mk('Liberar', 1) + mk('Cambiar fecha') : mk('Comprometer fecha', 1) + mk('Liberar');
+  return `<div class="btns">${b}${mk('No me corresponde')}</div>`;
+}
+function rstTarjeta(x, conRecinto){
+  const [t, k] = SIT[x.sit] || [x.sit, ''];
+  const lab = META[x.e] ? META[x.e].i + ' · ' + META[x.e].l : x.e;
+  const dias = x.d === 1 ? '1 día' : x.d + ' días';
+  let pie = `${esc(nombre(x.resp))}` + (x.sup ? ` · supervisa ${esc(nombre(x.sup))}` : '');
+  if (x.fc) pie += ` · ${x.sit==='vencida'?'venció':'libera'} el ${larga(x.fc)}`;
+  if (x.rp) pie += ` · fecha cambiada ${x.rp} ${x.rp===1?'vez':'veces'}`;
+  if (x.sit === 'liberada por confirmar') pie += ` · declarada liberada el ${larga(x.ld)}; falta que el instalador borre la celda`;
+  if (x.sit === 'reabierta') pie += ` · se declaró liberada el ${larga(x.ld)} y la celda sigue con texto`;
+  if (x.rz) pie += ` · devuelta: ${esc(x.rz)}`;
+  return `<div class="it"><div class="cab"><span class="id">${esc(x.i)}</span>
+      <span class="tag${k?' '+k:''}">${esc(t)}</span><span class="id">${dias}</span></div>
+    ${conRecinto ? `<a href="#${esc(x.r)}" style="color:var(--ink);font-weight:700">${esc(x.rn||x.r)}</a> · ` : ''}${esc(lab)}<br>${esc(x.t)}
+    <div class="pie">${pie}</div>${conRecinto ? botones(x) : botones(x)}</div>`;
+}
+function pintaPersona(sig){
+  sello();
+  const P = D.pers[sig] || D.pers[Object.keys(D.pers).find(k => k.toUpperCase() === sig)] || null;
+  const clave = P ? Object.keys(D.pers).find(k => D.pers[k] === P) : sig;
+  const mias = D.rst.filter(x => (x.resp||'').toUpperCase() === clave.toUpperCase());
+  const sup  = D.rst.filter(x => (x.sup||'').toUpperCase() === clave.toUpperCase() && (x.resp||'').toUpperCase() !== clave.toUpperCase());
+  const filtro = (new URLSearchParams(location.hash.split('?')[1]||'')).get('f') || '';
+  const cuenta = (l, ...s) => l.filter(x => s.includes(x.sit)).length;
+  const ver = l => filtro ? l.filter(x => (filtro==='sin fecha' ? ['sin fecha','sin fecha vencida'] : [filtro]).includes(x.sit)) : l;
+  const etq = ((D.rst.find(x => (x.resp||'').toUpperCase() === clave.toUpperCase())||{}).resp) || sig;
+  const ord = l => l.slice().sort((a,b) => b.d - a.d);
+  document.getElementById('hero').innerHTML = `<div class="hero">
+    <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
+    <div class="cod">MIS RESTRICCIONES</div><h1>${esc(P ? P.n : etq)}</h1>
+    <div class="meta"><span>${esc(P ? P.c : '')}</span><span>${mias.length} propias</span>${sup.length?`<span>${sup.length} que supervisa</span>`:''}</div></div>`;
+  const chip = (f, t) => `<a href="#MIS/${esc(clave)}${f?'?f='+encodeURIComponent(f):''}" class="${filtro===f?'on':''}">${t}</a>`;
+  let h = `<div class="card"><div class="cifras">
+    <div><b>${cuenta(mias,'sin fecha','sin fecha vencida')}</b><span>sin fecha</span></div>
+    <div><b>${cuenta(mias,'comprometida')}</b><span>comprometidas</span></div>
+    <div class="r"><b>${cuenta(mias,'vencida','reabierta')}</b><span>vencidas</span></div>
+    <div><b>${cuenta(mias,'liberada por confirmar')}</b><span>por confirmar</span></div></div>
+    <div class="chips">${chip('','Todas')}${chip('sin fecha','Sin fecha')}${chip('comprometida','Comprometidas')}${chip('vencida','Vencidas')}${chip('liberada por confirmar','Por confirmar')}</div>`;
+  const lm = ord(ver(mias));
+  h += lm.length ? lm.map(x => rstTarjeta(x, true)).join('') : `<p class="vacio">No hay restricciones en esta lista.</p>`;
+  h += `</div>`;
+  if (sup.length){
+    const ls = ord(ver(sup));
+    h += `<div class="card"><details class="sub" ${(filtro||!mias.length)?"open":""}><summary>Que supervisa · ${sup.length}</summary>`
+       + (ls.length ? ls.map(x => rstTarjeta(x, true).replace(/<div class="btns">.*?<\/div>/s,'')).join('') : `<p class="vacio">Ninguna en esta lista.</p>`)
+       + `</details></div>`;
+  }
+  h += `<p class="nota">Las restricciones se ordenan por antigüedad. «Liberar» sólo la declara: queda confirmada cuando el instalador borra la celda en su planilla.</p>`;
+  document.getElementById('cuerpo').innerHTML = h;
+  document.getElementById('pie').textContent = 'Cadena de restricciones · Clínica Veterinaria PUC · registro al corte ' + larga(D.gen) + '.';
+  document.title = 'Mis restricciones · ' + (P ? P.n : etq);
+}
+function personasCard(){
+  if (!D.rst || !D.rst.length) return '';
+  const cn = {}; D.rst.forEach(x => { if (x.resp) cn[x.resp] = (cn[x.resp]||0) + 1 });
+  const orden = ['FL','JCR','JLA','JPO','DA','TyP','MyM','Kuruf'].filter(k => cn[k]);
+  const sups = ['FJ','SM'].filter(k => D.rst.some(x => x.sup === k));
+  return `<div class="card pers"><h2>Restricciones por persona</h2>` +
+    orden.map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>${cn[k]} abiertas</span></a>`).join('') +
+    sups.map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>supervisa ${D.rst.filter(x=>x.sup===k).length}</span></a>`).join('') + `</div>`;
 }
 
 function tema(t){
@@ -342,7 +445,8 @@ const cod = () => decodeURIComponent(location.hash.replace(/^#/,'')).trim().toUp
 // vez de mostrar una página en blanco.
 function ruta(){
   const c = cod();
-  if (c){ pinta(c); window.scrollTo(0,0); return }
+  if (c.startsWith('MIS/') && D && D.rst){ pintaPersona(c.slice(4).split('?')[0]); window.scrollTo(0,0); return }
+  if (c){ pinta(c.split('?')[0]); window.scrollTo(0,0); return }
   sello();
   document.getElementById('hero').innerHTML = `<div class="hero">
     <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
@@ -351,7 +455,7 @@ function ruta(){
       <span>${D ? D.rec.filter(x=>x.eq).length : 0} equipos</span>
       <span>Rombo y compromisos</span></div></div>`;
   document.getElementById('cuerpo').innerHTML =
-    `<div class="card"><p class="vacio">Escanea el código pegado en la puerta del recinto o en el equipo,<br>o búscalo abajo por nombre.</p></div>`;
+    `<div class="card"><p class="vacio">Escanea el código pegado en la puerta del recinto o en el equipo,<br>o búscalo abajo por nombre.</p></div>` + personasCard();
   document.title = 'Ficha de Recinto CVET';
   setTimeout(() => { try { q.focus({preventScroll:true}) } catch(e){} }, 120);
 }
