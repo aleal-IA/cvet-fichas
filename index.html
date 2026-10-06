@@ -335,7 +335,7 @@ function pinta(cod){
 const SIT = {'sin fecha':['Sin fecha',''], 'sin fecha vencida':['Sin fecha · plazo vencido','sf'],
   'comprometida':['Comprometida',''], 'vencida':['Vencida','venc'], 'liberada por confirmar':['Liberada · por confirmar','ok'],
   'reabierta':['Reabierta','venc'], 'por asignar':['Por asignar','']};
-const nombre = s => (D.pers && D.pers[s] && D.pers[s].n) || s || '—';
+const nombre = s => (((D.pers && D.pers[s] && D.pers[s].n) || s || '—') + '').replace('Angel','Ángel');
 // Enlace al formulario ya prellenado: el responsable sólo completa lo que falte.
 function enlace(x, accion){
   const F = D.form; if (!F) return null;
@@ -366,10 +366,47 @@ function rstTarjeta(x, conRecinto){
     ${conRecinto ? `<a href="#${esc(x.r)}" style="color:var(--ink);font-weight:700">${esc(x.rn||x.r)}</a> · ` : ''}${esc(lab)}<br>${esc(x.t)}
     <div class="pie">${pie}</div>${conRecinto ? botones(x) : botones(x)}</div>`;
 }
+// El Visitador de Obra, el Coordinador de Especialidades y el Visitador de Especialidades ven la obra completa,
+// no sólo lo que supervisan (ALM, 06/10). Las que son suyas llevan botones; las demás, sólo lectura.
+const VEN_TODO = ['SM','DA','AL'];
+function pintaTodo(clave, P){
+  const hq = new URLSearchParams(location.hash.split('?')[1] || '');
+  const fs = hq.get('f') || '', fr = hq.get('r') || '';
+  const U = clave.toUpperCase(), todas = D.rst;
+  const href = (f, r) => { const q = []; if (f) q.push('f=' + encodeURIComponent(f)); if (r) q.push('r=' + encodeURIComponent(r));
+    return '#MIS/' + clave + (q.length ? '?' + q.join('&') : '') };
+  const okF = x => !fs || (fs === 'sin fecha' ? ['sin fecha','sin fecha vencida'] : [fs]).includes(x.sit);
+  const lista = todas.filter(x => okF(x) && (!fr || x.resp === fr)).sort((a,b) => b.d - a.d);
+  const cuenta = (...s) => todas.filter(x => s.includes(x.sit)).length;
+  document.getElementById('hero').innerHTML = `<div class="hero">
+    <img class="logo" src="${LOGO}" alt="Constructora Pitágora">
+    <div class="cod">TODAS LAS RESTRICCIONES</div><h1>${esc(P ? P.n : clave)}</h1>
+    <div class="meta"><span>${esc(P ? P.c : '')}</span><span>${todas.length} abiertas en la obra</span></div></div>`;
+  const chip = (f, t) => `<a href="${href(f, fr)}" class="${fs===f?'on':''}">${t}</a>`;
+  const resp = [...new Set(todas.map(x => x.resp).filter(Boolean))]
+    .sort((a,b) => todas.filter(x=>x.resp===b).length - todas.filter(x=>x.resp===a).length);
+  let h = `<div class="card"><div class="cifras">
+    <div><b>${cuenta('sin fecha','sin fecha vencida')}</b><span>sin fecha</span></div>
+    <div><b>${cuenta('comprometida')}</b><span>comprometidas</span></div>
+    <div class="r"><b>${cuenta('vencida','reabierta')}</b><span>vencidas</span></div>
+    <div><b>${cuenta('liberada por confirmar','por asignar')}</b><span>por confirmar o asignar</span></div></div>
+    <div class="chips">${chip('','Todas')}${chip('sin fecha','Sin fecha')}${chip('comprometida','Comprometidas')}${chip('vencida','Vencidas')}${chip('reabierta','Reabiertas')}${chip('liberada por confirmar','Por confirmar')}${chip('por asignar','Por asignar')}</div>
+    <div class="chips"><a href="${href(fs,'')}" class="${!fr?'on':''}">Todos</a>${resp.map(r =>
+      `<a href="${href(fs, r)}" class="${fr===r?'on':''}">${esc(r)} · ${todas.filter(x=>x.resp===r).length}</a>`).join('')}</div>`;
+  h += lista.length ? lista.map(x => {
+    const t = rstTarjeta(x, true);
+    return (x.resp||'').toUpperCase() === U ? t : t.replace(/<div class="btns">.*?<\/div>/s, '');
+  }).join('') : `<p class="vacio">No hay restricciones en esta lista.</p>`;
+  h += `</div><p class="nota">Ves la obra completa, ordenada por antigüedad. Los botones aparecen sólo en las restricciones que son tuyas; el resto es de lectura.</p>`;
+  document.getElementById('cuerpo').innerHTML = h;
+  document.getElementById('pie').textContent = 'Cadena de restricciones · Clínica Veterinaria PUC · registro al corte ' + larga(D.gen) + '.';
+  document.title = 'Todas las restricciones · ' + (P ? P.n : clave);
+}
 function pintaPersona(sig){
   sello();
   const P = D.pers[sig] || D.pers[Object.keys(D.pers).find(k => k.toUpperCase() === sig)] || null;
   const clave = P ? Object.keys(D.pers).find(k => D.pers[k] === P) : sig;
+  if (VEN_TODO.includes(clave.toUpperCase())) return pintaTodo(clave, P);
   const mias = D.rst.filter(x => (x.resp||'').toUpperCase() === clave.toUpperCase());
   const sup  = D.rst.filter(x => (x.sup||'').toUpperCase() === clave.toUpperCase() && (x.resp||'').toUpperCase() !== clave.toUpperCase());
   const filtro = (new URLSearchParams(location.hash.split('?')[1]||'')).get('f') || '';
@@ -406,10 +443,11 @@ function personasCard(){
   if (!D.rst || !D.rst.length) return '';
   const cn = {}; D.rst.forEach(x => { if (x.resp) cn[x.resp] = (cn[x.resp]||0) + 1 });
   const orden = ['FL','JCR','JLA','JPO','DA','TyP','MyM','Kuruf'].filter(k => cn[k]);
-  const sups = ['FJ','SM'].filter(k => D.rst.some(x => x.sup === k));
+  const sups = ['FJ'].filter(k => D.rst.some(x => x.sup === k));
   return `<div class="card pers"><h2>Restricciones por persona</h2>` +
     orden.map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>${cn[k]} abiertas</span></a>`).join('') +
-    sups.map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>supervisa ${D.rst.filter(x=>x.sup===k).length}</span></a>`).join('') + `</div>`;
+    sups.map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>supervisa ${D.rst.filter(x=>x.sup===k).length}</span></a>`).join('') +
+    VEN_TODO.filter(k => D.pers[k]).map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>toda la obra · ${D.rst.length}</span></a>`).join('') + `</div>`;
 }
 
 function tema(t){
