@@ -196,7 +196,15 @@ function monta(d, origen){
 // El corte semanal sirve para comparar semanas en el panel. Acá, parado en la puerta, la
 // pregunta es otra: ¿este ítem está puesto HOY? Se lee toda la carga, y el sello dice de
 // cuándo es esa carga para que nadie confunda una ficha vieja con la obra.
-const puesto = it => !!it.f;
+const puesto = it => !!it.f && !it.mod;
+// Prioridad por color (ALM, 09/10): la semana con que ALM pintó cada ítem pendiente en Drive.
+const PNOM = {A:'atraso', P:'esta semana', '1':'1ª semana', '2':'2ª semana', '3':'3ª semana', '4':'4ª semana o después'};
+function prio(it){
+  const l = (D.ley||[]).find(x => x.c === it.pc);
+  if (!l) return 'pendiente';
+  const r = l.c === '4' ? 'desde el ' + fecha(l.ini) : fecha(l.ini) + ' al ' + fecha(l.fin);
+  return `<b style="color:#${l.rgb}">● ${PNOM[l.c]}</b><br>${r}${it.mod ? '<br>modificación' : ''}`;
+}
 
 function avance(esp){
   let num=0, den=0, ok=0;
@@ -319,7 +327,7 @@ function pinta(cod){
       <ul class="items">${s.it.map(it => `<li class="${puesto(it)?'':'pend'}">
         <span class="tick ${puesto(it)?'si':'no'}">${puesto(it)?'✓':''}</span>
         <span class="d">${esc(it.d)}</span>
-        <span class="f">${puesto(it)?fecha(it.f):'pendiente'}</span></li>`).join('')}</ul>
+        <span class="f" style="text-align:right">${puesto(it)?fecha(it.f):prio(it)}</span></li>`).join('')}</ul>
     </div>`}).join('') + `</div>`;
 
   if (r.zona.length) h += `<div class="card"><details class="sub"><summary>Compromisos de la zona o del piso · ${r.zona.length}</summary>
