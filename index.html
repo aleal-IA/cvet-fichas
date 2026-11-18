@@ -451,7 +451,7 @@ function pintaPersona(sig){
 function personasCard(){
   if (!D.rst || !D.rst.length) return '';
   const cn = {}; D.rst.forEach(x => { if (x.resp) cn[x.resp] = (cn[x.resp]||0) + 1 });
-  const orden = ['FL','CP','JCR','JLA','JPO','DA','TyP','MyM','Kuruf','Bash'].filter(k => cn[k]);
+  const orden = ['MC','FL','CP','JCR','JLA','JPO','DA','TyP','MyM','Kuruf','Bash'].filter(k => cn[k]);
   const sups = ['FJ'].filter(k => D.rst.some(x => x.sup === k));
   return `<div class="card pers"><h2>Restricciones por persona</h2>` +
     orden.map(k => `<a href="#MIS/${k}"><b>${esc(nombre(k))}</b><span>${cn[k]} abiertas</span></a>`).join('') +
